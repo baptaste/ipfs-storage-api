@@ -24,11 +24,17 @@ const apiRoutes: ApiRoutes = {
 
 // POST
 router.post('/api/auth/login', (req, res) => new AuthController('login', req, res));
-
 // GET
+router.get(
+	'/api/auth/password/:email',
+	(req, res) => new AuthController('getMasterPassword', req, res),
+);
 router.get('/api/auth/logout', handleAuth, (req, res) => new AuthController('logout', req, res));
-
-router.get('/api/auth/refresh', handleAuth, (req, res) => new AuthController('refreshToken', req, res));
+router.get(
+	'/api/auth/refresh',
+	handleAuth,
+	(req, res) => new AuthController('refreshToken', req, res),
+);
 
 //////////////////
 // Users routes //
@@ -46,19 +52,35 @@ router.get('/api/users', handleAuth, (req, res) => new UserController('getAll', 
 router.get('/api/users/:userId', handleAuth, (req, res) => new UserController('getUser', req, res));
 
 // PATCH
-router.patch('/api/users/update/password', handleAuth, (req, res) => new UserController('changePassword', req, res));
+router.patch(
+	'/api/users/update/password',
+	handleAuth,
+	(req, res) => new UserController('changePassword', req, res),
+);
 
 // DELETE
-router.delete('/api/users/delete/:userId', handleAuth, (req, res) => new UserController('deleteUser', req, res));
+router.delete(
+	'/api/users/delete/:userId',
+	handleAuth,
+	(req, res) => new UserController('deleteUser', req, res),
+);
 
 //////////////////////
 // Passwords routes //
 //////////////////////
 
 // POST
-router.post('/api/passwords/create', handleAuth, (req, res) => new PasswordController('createPassword', req, res));
+router.post(
+	'/api/passwords/create',
+	handleAuth,
+	(req, res) => new PasswordController('createPassword', req, res),
+);
 
-router.post('/api/passwords/retrieve', handleAuth, (req, res) => new PasswordController('retrievePassword', req, res));
+router.post(
+	'/api/passwords/retrieve',
+	handleAuth,
+	(req, res) => new PasswordController('retrievePassword', req, res),
+);
 
 // GET
 router.get('/api/passwords', handleAuth, (req, res) => new PasswordController('getAll', req, res));

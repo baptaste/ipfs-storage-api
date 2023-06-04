@@ -1,6 +1,6 @@
-import { IpfsDataType } from './types';
+import { IpfsDataType } from '../../services/ipfs/types';
 
-export function formatIpfsAddResultToObject(ipfsAddResult: any) {
+export function formatIpfsObject(ipfsAddResult: any) {
 	return {
 		path: ipfsAddResult.path,
 		cid: ipfsAddResult.cid.toString(),

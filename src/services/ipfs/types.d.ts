@@ -5,6 +5,6 @@ export interface IpfsDataType {
 }
 
 export interface IpfsRetrieveResult {
-	encryptionId: string;
-	encrypted: string;
+	encrypted: Uint8Array;
+	vector: Uint8Array;
 }

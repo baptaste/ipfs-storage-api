@@ -1,3 +1,5 @@
+import { formatPassword } from '../../helpers/formatters/password';
+import { queryProjection } from '../../helpers/query';
 import Password from '../../models/Password';
 import { IpfsDataType } from '../ipfs/types';
 
@@ -6,19 +8,26 @@ export interface Password {
 	owner_id: string;
 	title: string;
 	encryption_id: string;
-	ipfs: IpfsDataType;
+	ipfs?: IpfsDataType;
 	created_at: string;
 	updated_at?: string;
 }
 
 export default class PasswordService {
-	static create(title: string, userId: string, encryptionId: string, ipfsData: IpfsDataType): Promise<Password | null> {
+	static create(
+		title: string,
+		userId: string,
+		encryptionId: string,
+		ipfsData: IpfsDataType,
+	): Promise<Password | null> {
 		return new Promise((resolve, reject) => {
 			// check if password already exists
 			PasswordService.getByEncryptionId(encryptionId)
 				.then((record) => {
 					if (record) {
-						console.error(`PasswordService - item already exists with encryptionId ${encryptionId}`);
+						console.error(
+							`PasswordService - item already exists with encryptionId ${encryptionId}`,
+						);
 						resolve(null);
 					} else {
 						Password.create({
@@ -29,7 +38,7 @@ export default class PasswordService {
 						})
 							.then((password) => {
 								console.log('PasswordService - create password success');
-								resolve(password);
+								resolve(formatPassword(password));
 							})
 							.catch((err) => {
 								console.log('PasswordService - create password error:', err);
@@ -44,16 +53,17 @@ export default class PasswordService {
 		});
 	}
 
-	static getByEncryptionId(encryptionId: string): Promise<Password | null> {
+	static getByEncryptionId(encryptionId: string, returnIpfs = false): Promise<Password | null> {
 		// const ownerIdField: string = 'owner_id'
 		return new Promise((resolve, reject) => {
 			console.log('PasswordService - get password with encryptionId:', encryptionId);
 			Password.findOne()
 				.where('encryption_id')
 				.equals(encryptionId)
+				.select(queryProjection([{ field: 'ipfs', include: returnIpfs }]))
 				.then((password) => {
 					console.log('PasswordService - getByEncryptionId, password:', password);
-					resolve(password);
+					resolve(password || null);
 					// if (password !== null) resolve(password)
 					// else reject('Password encryption_id does not exists')
 				})
@@ -69,6 +79,7 @@ export default class PasswordService {
 			Password.find()
 				.where('owner_id')
 				.equals(userId)
+				.select('-ipfs') // doesnt return ipfs obj
 				.then((passwords) => {
 					console.log('PasswordService - get all passwords success');
 					resolve(passwords);
@@ -89,7 +100,7 @@ export default class PasswordService {
 			Password.findOneAndUpdate(filter, update, options)
 				.then((password) => {
 					console.log('PasswordService - update title success, updated:', password);
-					resolve(password);
+					resolve(formatPassword(password));
 				})
 				.catch((err) => {
 					console.log('PasswordService - update title error:', err);
@@ -107,7 +118,7 @@ export default class PasswordService {
 			Password.findOneAndUpdate(filter, update, options)
 				.then((password) => {
 					console.log('PasswordService - updateLastModification success');
-					resolve(password);
+					resolve(formatPassword(password));
 				})
 				.catch((err) => {
 					console.log('PasswordService - updateLastModification error:', err);
@@ -139,7 +150,10 @@ export default class PasswordService {
 
 					Password.deleteMany()
 						.then((res) => {
-							console.log('PasswordService deleteAll - res.deletedCount:', res.deletedCount);
+							console.log(
+								'PasswordService deleteAll - res.deletedCount:',
+								res.deletedCount,
+							);
 							resolve(res.deletedCount === passwordCount);
 						})
 						.catch((err) => {

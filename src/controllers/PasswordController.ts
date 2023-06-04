@@ -1,12 +1,10 @@
 import { AppController } from './AppController';
 import { Request, Response } from 'express';
 import PasswordService from '../services/database/PasswordService';
-import UserService from '../services/database/UserService';
-import { decryptData, encryptData } from '../helpers/crypto';
 import { v4 as uuid } from 'uuid';
 import { ipfsRetrieve, ipfsStore } from '../services/ipfs/service';
-import { IpfsDataType } from '../services/ipfs/types';
-import { formatIpfsAddResultToObject } from '../services/ipfs/utils';
+import { formatIpfsObject } from '../helpers/formatters/ipfs';
+
 // import IpfsService from '../services/ipfs/IpfsService'
 
 export class PasswordController extends AppController {
@@ -55,71 +53,135 @@ export class PasswordController extends AppController {
 	public async createPassword(req: Request, res: Response) {
 		if (!this.userId) return;
 
-		const { title, password }: Record<string, string> = req.body;
+		const { title, password, vector } = req.body;
+		console.log('createPassword - req body encrypted password buffer', password);
 
 		if (!title) return this.clientError(res, 'Title is required.');
-
 		if (!password) return this.clientError(res, 'Password is required.');
+		if (!vector) return this.clientError(res, 'Password is required.');
 
-		const encryptionKey = await UserService.getEncryptionKey(this.userId);
+		// Create random uuid for the new password
+		const encryptionId = uuid();
+		// all data obj goes to ipfs, never stored into db
+		const data = {
+			encrypted: password as Uint8Array,
+			vector: vector as Uint8Array,
+		};
 
-		if (encryptionKey) {
-			// Encrypts new password with user encryption key
-			const encryptedPassword = encryptData(password, encryptionKey);
-			// Create random uuid for the new password
-			const encryptionId = uuid();
+		const ipfsResult = await ipfsStore(data);
 
-			// const ipfsCID = await IpfsService.store(encryptionId, encryptedPassword)
-			const data = { encryptionId, encrypted: encryptedPassword };
-			const ipfsResult = await ipfsStore(data);
+		if (ipfsResult.cid) {
+			console.log('createPassword - ipfsResult:', ipfsResult);
+			const ipfsData = formatIpfsObject(ipfsResult);
+			// Create password in db
+			const newPassword = await PasswordService.create(
+				title,
+				this.userId,
+				encryptionId,
+				ipfsData,
+			);
 
-			if (ipfsResult.cid) {
-				console.log('createPassword - ipfsResult:', ipfsResult);
-				const ipfsData = formatIpfsAddResultToObject(ipfsResult);
-				// Create password in db
-				const newPassword = await PasswordService.create(title, this.userId, encryptionId, ipfsData);
-
-				if (!newPassword) {
-					// DB Error
-					return this.ok(res, {
-						success: false,
-						password: null,
-						message: 'An error occurred while storing your password',
-					});
-				}
-
-				this.ok(res, { success: true, password: newPassword });
+			if (!newPassword) {
+				// DB Error
+				return this.ok(res, {
+					success: false,
+					password: null,
+					message: 'An error occurred while storing your password',
+				});
 			}
+
+			this.ok(res, { success: true, password: newPassword });
 		}
 	}
 
 	public async retrievePassword(req: Request, res: Response) {
 		if (!this.userId) return;
-
 		const { encryptionId } = req.body;
-
 		if (!encryptionId) {
 			return this.unauthorized(res, 'password encryption id is required');
 		}
-
-		const passwordRecord = await PasswordService.getByEncryptionId(encryptionId);
-
+		const passwordRecord = await PasswordService.getByEncryptionId(
+			encryptionId,
+			true, // access ipfs obj key
+		);
 		if (passwordRecord && passwordRecord.ipfs) {
 			this.checkOwner(res, passwordRecord);
-
-			// const ipfsResponse = await IpfsService.retrieve(passwordRecord.ipfs.cid);
 			const ipfsResult = await ipfsRetrieve(passwordRecord.ipfs.cid);
-
+			console.log('retrievePassword - ipfsResult', ipfsResult);
 			if (ipfsResult) {
-				const encryptionKey = await UserService.getEncryptionKey(this.userId);
-
-				if (encryptionKey) {
-					const plaintextPassword = decryptData(ipfsResult.encrypted, encryptionKey);
-					this.ok(res, { success: true, decrypted: plaintextPassword });
-				}
+				this.ok(res, { success: true, data: ipfsResult });
 			}
 		}
 	}
+
+	// public async createPassword(req: Request, res: Response) {
+	// 	if (!this.userId) return;
+
+	// 	const { title, password }: Record<string, string> = req.body;
+
+	// 	if (!title) return this.clientError(res, 'Title is required.');
+
+	// 	if (!password) return this.clientError(res, 'Password is required.');
+
+	// 	const encryptionKey = await UserService.getEncryptionKey(this.userId);
+
+	// 	if (encryptionKey) {
+	// 		// Encrypts new password with user encryption key
+	// 		const encryptedPassword = encryptData(password, encryptionKey);
+	// 		// Create random uuid for the new password
+	// 		const encryptionId = uuid();
+
+	// 		// const ipfsCID = await IpfsService.store(encryptionId, encryptedPassword)
+	// 		const data = { encryptionId, encrypted: encryptedPassword };
+	// 		const ipfsResult = await ipfsStore(data);
+
+	// 		if (ipfsResult.cid) {
+	// 			console.log('createPassword - ipfsResult:', ipfsResult);
+	// 			const ipfsData = formatIpfsObject(ipfsResult);
+	// 			// Create password in db
+	// 			const newPassword = await PasswordService.create(title, this.userId, encryptionId, ipfsData);
+
+	// 			if (!newPassword) {
+	// 				// DB Error
+	// 				return this.ok(res, {
+	// 					success: false,
+	// 					password: null,
+	// 					message: 'An error occurred while storing your password',
+	// 				});
+	// 			}
+
+	// 			this.ok(res, { success: true, password: newPassword });
+	// 		}
+	// 	}
+	// }
+
+	// public async retrievePassword(req: Request, res: Response) {
+	// 	if (!this.userId) return;
+
+	// 	const { encryptionId } = req.body;
+
+	// 	if (!encryptionId) {
+	// 		return this.unauthorized(res, 'password encryption id is required');
+	// 	}
+
+	// 	const passwordRecord = await PasswordService.getByEncryptionId(encryptionId);
+
+	// 	if (passwordRecord && passwordRecord.ipfs) {
+	// 		this.checkOwner(res, passwordRecord);
+
+	// 		// const ipfsResponse = await IpfsService.retrieve(passwordRecord.ipfs.cid);
+	// 		const ipfsResult = await ipfsRetrieve(passwordRecord.ipfs.cid);
+
+	// 		if (ipfsResult) {
+	// 			const encryptionKey = await UserService.getEncryptionKey(this.userId);
+
+	// 			if (encryptionKey) {
+	// 				const plaintextPassword = decryptData(ipfsResult.encrypted, encryptionKey);
+	// 				this.ok(res, { success: true, decrypted: plaintextPassword });
+	// 			}
+	// 		}
+	// 	}
+	// }
 
 	// public async updatePassword(req: Request, res: Response) {
 	// 	if (!this.userId) return
