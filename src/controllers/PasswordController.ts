@@ -4,6 +4,7 @@ import PasswordService from '../services/database/PasswordService';
 import { v4 as uuid } from 'uuid';
 import { ipfsRetrieve, ipfsStore } from '../services/ipfs/service';
 import { formatIpfsObject } from '../helpers/formatters/ipfs';
+import { getFaviconURL } from '../helpers/favicons';
 
 // import IpfsService from '../services/ipfs/IpfsService'
 
@@ -53,12 +54,14 @@ export class PasswordController extends AppController {
 	public async createPassword(req: Request, res: Response) {
 		if (!this.userId) return;
 
-		const { title, password, vector } = req.body;
-		console.log('createPassword - req body encrypted password buffer', password);
+		const { password, vector, title, websiteUrl } = req.body;
+		let imageUrl = undefined;
 
-		if (!title) return this.clientError(res, 'Title is required.');
 		if (!password) return this.clientError(res, 'Password is required.');
 		if (!vector) return this.clientError(res, 'Password is required.');
+		if (!title && !websiteUrl) {
+			return this.clientError(res, 'Either a title or associated website url is required.');
+		}
 
 		// Create random uuid for the new password
 		const encryptionId = uuid();
@@ -73,12 +76,17 @@ export class PasswordController extends AppController {
 		if (ipfsResult.cid) {
 			console.log('createPassword - ipfsResult:', ipfsResult);
 			const ipfsData = formatIpfsObject(ipfsResult);
+			if (websiteUrl) {
+				imageUrl = await getFaviconURL(websiteUrl);
+			}
 			// Create password in db
 			const newPassword = await PasswordService.create(
-				title,
 				this.userId,
 				encryptionId,
 				ipfsData,
+				title,
+				websiteUrl,
+				imageUrl,
 			);
 
 			if (!newPassword) {

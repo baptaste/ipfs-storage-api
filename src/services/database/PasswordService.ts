@@ -5,21 +5,34 @@ import { IpfsDataType } from '../ipfs/types';
 
 export interface Password {
 	_id: string;
-	owner_id: string;
-	title: string;
 	encryption_id: string;
-	ipfs?: IpfsDataType;
+	owner_id: string;
 	created_at: string;
+	image_url?: String;
+	ipfs?: IpfsDataType;
+	title?: string;
 	updated_at?: string;
+	website_url?: String;
 }
 
 export default class PasswordService {
 	static create(
-		title: string,
 		userId: string,
 		encryptionId: string,
 		ipfsData: IpfsDataType,
+		title?: string,
+		websiteUrl?: string,
+		imageUrl?: string,
 	): Promise<Password | null> {
+		let data: any = {
+			owner_id: userId,
+			encryption_id: encryptionId,
+			ipfs: ipfsData,
+		};
+		if (title) data.title = title;
+		if (websiteUrl) data.website_url = websiteUrl;
+		if (imageUrl) data.image_url = imageUrl;
+
 		return new Promise((resolve, reject) => {
 			// check if password already exists
 			PasswordService.getByEncryptionId(encryptionId)
@@ -30,12 +43,7 @@ export default class PasswordService {
 						);
 						resolve(null);
 					} else {
-						Password.create({
-							title,
-							owner_id: userId,
-							encryption_id: encryptionId,
-							ipfs: ipfsData,
-						})
+						Password.create(data)
 							.then((password) => {
 								console.log('PasswordService - create password success');
 								resolve(formatPassword(password));
