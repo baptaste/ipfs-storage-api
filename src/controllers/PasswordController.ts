@@ -1,10 +1,11 @@
-import { AppController } from './AppController';
-import { Request, Response } from 'express';
-import PasswordService from '../services/database/PasswordService';
-import { v4 as uuid } from 'uuid';
-import { ipfsRetrieve, ipfsStore } from '../services/ipfs/service';
-import { formatIpfsObject } from '../helpers/formatters/ipfs';
-import { getFaviconURL } from '../helpers/favicons';
+import { AppController } from "./AppController";
+import { Request, Response } from "express";
+import PasswordService from "../services/database/PasswordService";
+import { v4 as uuid } from "uuid";
+import { ipfsRetrieve, ipfsStore } from "../services/ipfs/service";
+import { formatIpfsObject } from "../helpers/formatters/ipfs";
+import { getFaviconURL } from "../helpers/favicons";
+import { extractDomainFromURL } from "../helpers/url";
 
 // import IpfsService from '../services/ipfs/IpfsService'
 
@@ -16,7 +17,7 @@ export class PasswordController extends AppController {
 		super();
 
 		if (!req.user.userId) {
-			this.unauthorized(res, 'auth user id is required');
+			this.unauthorized(res, "auth user id is required");
 		} else {
 			this.userId = req.user.userId;
 			this.execute(req, res);
@@ -28,7 +29,7 @@ export class PasswordController extends AppController {
 			// handle requests, given through constructor in router
 			await this[this.method](req, res);
 		} catch (err: any) {
-			console.error('PasswordController - handler err:', err);
+			console.error("PasswordController - handler err:", err);
 			return this.serverError(res, err.toString());
 		}
 	}
@@ -55,35 +56,45 @@ export class PasswordController extends AppController {
 		if (!this.userId) return;
 
 		const { password, vector, title, websiteUrl } = req.body;
+		let displayedName: string | null = title;
 		let imageUrl = undefined;
 
-		if (!password) return this.clientError(res, 'Password is required.');
-		if (!vector) return this.clientError(res, 'Password is required.');
+		if (!password) return this.clientError(res, "Password is required.");
+		if (!vector) return this.clientError(res, "Password is required.");
 		if (!title && !websiteUrl) {
-			return this.clientError(res, 'Either a title or associated website url is required.');
+			return this.clientError(res, "Either a title or associated website url is required.");
 		}
 
-		// Create random uuid for the new password
-		const encryptionId = uuid();
+		if (websiteUrl) {
+			imageUrl = await getFaviconURL(websiteUrl);
+			if (!title) {
+				displayedName = extractDomainFromURL(websiteUrl);
+			}
+		}
+
+		if (displayedName !== null) {
+			displayedName = displayedName.charAt(0).toUpperCase() + displayedName.slice(1);
+		}
+
 		// all data obj goes to ipfs, never stored into db
-		const data = {
+		const ipfsData = {
 			encrypted: password as Uint8Array,
 			vector: vector as Uint8Array,
 		};
 
-		const ipfsResult = await ipfsStore(data);
+		const ipfsResult = await ipfsStore(ipfsData);
 
 		if (ipfsResult.cid) {
-			console.log('createPassword - ipfsResult:', ipfsResult);
+			console.log("createPassword - ipfsResult:", ipfsResult);
 			const ipfsData = formatIpfsObject(ipfsResult);
-			if (websiteUrl) {
-				imageUrl = await getFaviconURL(websiteUrl);
-			}
+			// Create random uuid for the new password
+			const encryptionId = uuid();
 			// Create password in db
 			const newPassword = await PasswordService.create(
 				this.userId,
 				encryptionId,
 				ipfsData,
+				displayedName as string,
 				title,
 				websiteUrl,
 				imageUrl,
@@ -94,7 +105,7 @@ export class PasswordController extends AppController {
 				return this.ok(res, {
 					success: false,
 					password: null,
-					message: 'An error occurred while storing your password',
+					message: "An error occurred while creating password",
 				});
 			}
 
@@ -106,7 +117,7 @@ export class PasswordController extends AppController {
 		if (!this.userId) return;
 		const { encryptionId } = req.body;
 		if (!encryptionId) {
-			return this.unauthorized(res, 'password encryption id is required');
+			return this.unauthorized(res, "password encryption id is required");
 		}
 		const passwordRecord = await PasswordService.getByEncryptionId(
 			encryptionId,
@@ -115,7 +126,7 @@ export class PasswordController extends AppController {
 		if (passwordRecord && passwordRecord.ipfs) {
 			this.checkOwner(res, passwordRecord);
 			const ipfsResult = await ipfsRetrieve(passwordRecord.ipfs.cid);
-			console.log('retrievePassword - ipfsResult', ipfsResult);
+			console.log("retrievePassword - ipfsResult", ipfsResult);
 			if (ipfsResult) {
 				this.ok(res, { success: true, data: ipfsResult });
 			}
