@@ -1,10 +1,10 @@
-import express from 'express';
-import { handleAuth } from '../middlewares/auth';
-import { AuthController, PasswordController, UserController } from '../controllers';
-import { v4 } from 'uuid';
+import express from "express";
+import { handleAuth } from "../middlewares/auth";
+import { AuthController, PasswordController, UserController } from "../controllers";
+import { v4 } from "uuid";
 // import IpfsService from '../services/ipfs/IpfsService';
-import PasswordService from '../services/database/PasswordService';
-import { ipfsRetrieve, ipfsStore } from '../services/ipfs/service';
+import PasswordService from "../services/database/PasswordService";
+import { ipfsRetrieve, ipfsStore } from "../services/ipfs/service";
 
 const router = express.Router();
 
@@ -13,9 +13,9 @@ type ApiRoutes = {
 };
 
 const apiRoutes: ApiRoutes = {
-	auth: '/api/auth',
-	users: '/api/users',
-	passwords: '/api/passwords',
+	auth: "/api/auth",
+	users: "/api/users",
+	passwords: "/api/passwords",
 };
 
 //////////////////
@@ -23,17 +23,17 @@ const apiRoutes: ApiRoutes = {
 //////////////////
 
 // POST
-router.post('/api/auth/login', (req, res) => new AuthController('login', req, res));
+router.post("/api/auth/login", (req, res) => new AuthController("login", req, res));
 // GET
 router.get(
-	'/api/auth/password/:email',
-	(req, res) => new AuthController('getMasterPassword', req, res),
+	"/api/auth/password/:email",
+	(req, res) => new AuthController("getMasterPassword", req, res),
 );
-router.get('/api/auth/logout', handleAuth, (req, res) => new AuthController('logout', req, res));
+router.get("/api/auth/logout", handleAuth, (req, res) => new AuthController("logout", req, res));
 router.get(
-	'/api/auth/refresh',
+	"/api/auth/refresh",
 	handleAuth,
-	(req, res) => new AuthController('refreshToken', req, res),
+	(req, res) => new AuthController("refreshToken", req, res),
 );
 
 //////////////////
@@ -41,28 +41,28 @@ router.get(
 //////////////////
 
 // POST
-router.post('/api/users/create', (req, res) => new UserController('createUser', req, res));
+router.post("/api/users/create", (req, res) => new UserController("createUser", req, res));
 
 // GET
 
 ///// DEV ROUTE /////
-router.get('/api/users', handleAuth, (req, res) => new UserController('getAll', req, res));
+router.get("/api/users", handleAuth, (req, res) => new UserController("getAll", req, res));
 ///// END DEV ROUTE /////
 
-router.get('/api/users/:userId', handleAuth, (req, res) => new UserController('getUser', req, res));
+router.get("/api/users/:userId", handleAuth, (req, res) => new UserController("getUser", req, res));
 
 // PATCH
 router.patch(
-	'/api/users/update/password',
+	"/api/users/update/password",
 	handleAuth,
-	(req, res) => new UserController('changePassword', req, res),
+	(req, res) => new UserController("changePassword", req, res),
 );
 
 // DELETE
 router.delete(
-	'/api/users/delete/:userId',
+	"/api/users/delete/:userId",
 	handleAuth,
-	(req, res) => new UserController('deleteUser', req, res),
+	(req, res) => new UserController("deleteUser", req, res),
 );
 
 //////////////////////
@@ -71,19 +71,26 @@ router.delete(
 
 // POST
 router.post(
-	'/api/passwords/create',
+	"/api/passwords/create",
 	handleAuth,
-	(req, res) => new PasswordController('createPassword', req, res),
+	(req, res) => new PasswordController("createPassword", req, res),
 );
 
 router.post(
-	'/api/passwords/retrieve',
+	"/api/passwords/retrieve",
 	handleAuth,
-	(req, res) => new PasswordController('retrievePassword', req, res),
+	(req, res) => new PasswordController("retrievePassword", req, res),
 );
 
 // GET
-router.get('/api/passwords', handleAuth, (req, res) => new PasswordController('getAll', req, res));
+router.get("/api/passwords", handleAuth, (req, res) => new PasswordController("getAll", req, res));
+
+// DELETE
+router.delete(
+	"/api/passwords/delete",
+	handleAuth,
+	(req, res) => new PasswordController("deletePassword", req, res),
+);
 
 /** TODO
  // PATCH
@@ -91,13 +98,6 @@ router.patch(
 	'/api/passwords/update',
 	handleAuth,
 	(req, res) => new PasswordController('updatePassword', req, res)
-)
-
-// DELETE
-router.delete(
-	'/api/passwords/delete',
-	handleAuth,
-	(req, res) => new PasswordController('deletePassword', req, res)
 )
 
 router.delete(

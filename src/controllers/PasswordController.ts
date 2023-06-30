@@ -2,7 +2,7 @@ import { AppController } from "./AppController";
 import { Request, Response } from "express";
 import PasswordService from "../services/database/PasswordService";
 import { v4 as uuid } from "uuid";
-import { ipfsRetrieve, ipfsStore } from "../services/ipfs/service";
+import { ipfsDelete, ipfsRetrieve, ipfsStore } from "../services/ipfs/service";
 import { formatIpfsObject } from "../helpers/formatters/ipfs";
 import { getFaviconURL } from "../helpers/favicons";
 import { extractDomainFromURL } from "../helpers/url";
@@ -129,6 +129,31 @@ export class PasswordController extends AppController {
 			console.log("retrievePassword - ipfsResult", ipfsResult);
 			if (ipfsResult) {
 				this.ok(res, { success: true, data: ipfsResult });
+			}
+		}
+	}
+
+	public async deletePassword(req: Request, res: Response) {
+		if (!this.userId) return;
+		const { encryptionId } = req.body;
+		if (!encryptionId) {
+			return this.unauthorized(res, "password encryption id is required");
+		}
+		const passwordRecord = await PasswordService.getByEncryptionId(
+			encryptionId,
+			true, // access ipfs obj key
+		);
+		console.log("CONTROLLER - passwordRecord", passwordRecord);
+
+		if (passwordRecord && passwordRecord.ipfs) {
+			this.checkOwner(res, passwordRecord);
+			const ipfsResult = await ipfsDelete(passwordRecord.ipfs.cid);
+			if (!ipfsResult) {
+				return this.ok(res, { success: false, deleted: false });
+			}
+			const dbSuccess = await PasswordService.delete(passwordRecord.encryption_id);
+			if (dbSuccess) {
+				this.ok(res, { success: true, deleted: true });
 			}
 		}
 	}
