@@ -1,6 +1,6 @@
 import { CID } from "ipfs-http-client";
 import ipfs from "./config";
-import { IpfsRetrieveResult } from "./types";
+import { IEncryptedData } from "./types";
 
 export async function ipfsStore(data: any, ipfsPath?: string) {
 	console.log("ipfsStore - data:", data);
@@ -20,7 +20,7 @@ export async function ipfsStore(data: any, ipfsPath?: string) {
 	}
 }
 
-export async function ipfsRetrieve(cid: string): Promise<IpfsRetrieveResult> {
+export async function ipfsRetrieve(cid: string): Promise<IEncryptedData> {
 	try {
 		const chunks = [];
 		for await (const chunk of ipfs.cat(cid)) {

@@ -4,7 +4,7 @@ export interface IpfsDataType {
 	path: string;
 }
 
-export interface IpfsRetrieveResult {
+export interface IEncryptedData {
 	encrypted: Uint8Array;
 	vector: Uint8Array;
 }

@@ -92,14 +92,13 @@ router.delete(
 	(req, res) => new PasswordController("deletePassword", req, res),
 );
 
-/** TODO
- // PATCH
+// PATCH
 router.patch(
-	'/api/passwords/update',
+	"/api/passwords/update",
 	handleAuth,
-	(req, res) => new PasswordController('updatePassword', req, res)
-)
-
+	(req, res) => new PasswordController("updatePassword", req, res),
+);
+/** TODO
 router.delete(
 	'/api/passwords/deleteAll',
 	handleAuth,

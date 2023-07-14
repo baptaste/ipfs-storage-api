@@ -1,4 +1,4 @@
-export function extractDomainFromURL(url: string): string | null {
+export function extractDomainFromURL(url: string): string | undefined {
 	const domainRegex = /^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:\/\n]+)/im;
 	const matches = url.match(domainRegex);
 
@@ -16,6 +16,6 @@ export function extractDomainFromURL(url: string): string | null {
 		return domainParts.join(".");
 	} else {
 		console.error("Invalid URL");
-		return null;
+		return undefined;
 	}
 }
