@@ -111,18 +111,7 @@ export default class PasswordService {
     });
   }
 
-  static update(
-    userId: string,
-    data: ClientPasswordPayload,
-    // encryptionId: string,
-    // data: {
-    //   displayed_name?: string;
-    //   image_url?: string;
-    //   ipfs?: IpfsDataType;
-    //   title?: string;
-    //   website_url?: string;
-    // },
-  ): Promise<Password> {
+  static update(userId: string, data: ClientPasswordPayload): Promise<Password> {
     const filter = { owner_id: userId, encryption_id: data.encryptionId };
     const payload = getPasswordPayload(userId, data);
     const update = { ...payload, updated_at: Date.now() };

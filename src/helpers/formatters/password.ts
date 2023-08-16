@@ -48,9 +48,6 @@ export function getPasswordPayload(userId: string, data: ClientPasswordPayload):
       displayed_name: data.title,
     };
   }
-  //   else if (!data.title && data.displayedName) {
-  //     payload = { ...payload, displayed_name: data.displayedName };
-  //   }
   if (data.websiteUrl) {
     payload = { ...payload, website_url: data.websiteUrl };
   }
