@@ -25,9 +25,9 @@ const userRoutes: AppRoute[] = [
   },
   {
     method: "patch",
-    path: "/api/users/update/password",
+    path: "/api/users/update/:userId",
     middleware: handleAuth,
-    handler: (req, res) => new UserController("changePassword", req, res),
+    handler: (req, res) => new UserController("updateUser", req, res),
   },
   {
     method: "delete",
